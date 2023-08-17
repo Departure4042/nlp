@@ -47,6 +47,7 @@
     <button id="start-meeting">Start Meeting</button>
     <button id="stop-meeting">Stop Meeting</button>
     <button id="reset-calculator">Reset Calculator</button>
+    <button id="share-meeting">Share Meeting</button>
 
     <h2>Data Source:</h2>
     <p>
@@ -139,6 +140,25 @@
             $('.projection span, .savings span').text('$0.00');
         });
 
+        function generateShareableLink() {
+            const selectedIndices = employeeSelect.val();
+            const baseUrl = window.location.href.split('?')[0];
+            const queryParams = selectedIndices.map(index => `attendee=${index}`).join('&');
+            const shareableLink = `${baseUrl}?${queryParams}`;
+            
+            // Copy the link to clipboard or display it to the user
+            // For this example, we'll just alert it for demonstration purposes
+            alert(`Share this link to pre-populate attendees: ${shareableLink}`);
+        }
+
+        $('#share-meeting').click(generateShareableLink);
+
+        function preselectAttendeesFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const selectedIndices = urlParams.getAll('attendee');
+            employeeSelect.val(selectedIndices).trigger('change');
+        }
+
         loadEmployeeData().then(employeeData => {
             if (employeeData.length === 0) {
                 console.error('No employee data loaded from CSV.');
@@ -152,6 +172,10 @@
                 placeholder: 'Select attendees',
                 allowClear: true
             });
+            
+            // Pre-select attendees from the URL after loading employee data
+            preselectAttendeesFromURL();
+            
         }).catch(error => {
             console.error('Error in loading employee data:', error);
         });
