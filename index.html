@@ -5,10 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meeting Cost Calculator</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/preact/10.17.0/preact.min.js" integrity="sha512-BJXMYH7Swa/KxqABHeIl9MtU8qfAIh2G9Ts3G1jywllJIpEoxCf52W+GH3NpL4QAQEq881A6DDQOS29HVFEf5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        body.dark-mode {
+            background-color: #121212;
+            color: #e0e0e0;
         }
         #total-cost {
             font-size: 24px;
@@ -18,117 +27,119 @@
         .projection, .savings {
             font-size: 18px;
         }
+        @media (max-width: 768px) {
+            /* Mobile styles here */
+            body {
+                margin: 15px;
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>Meeting Cost Calculator</h1>
+    <div id="app"></div>
     
-    <label for="employee-select">Select Meeting Attendees:</label>
-    <select id="employee-select" style="width: 50%;" multiple="multiple">
-        <!-- Employee options will be populated here from the CSV data -->
-    </select>
-    
-    <h2>Total cost of this meeting:</h2>
-    <div id="total-cost">$0.00</div>
-    
-    <h3>Projected Costs:</h3>
-    <div class="projection">Cost if 15 minutes: <span id="cost-15min">$0.00</span></div>
-    <div class="projection">Cost if 30 minutes: <span id="cost-30min">$0.00</span></div>
-    <div class="projection">Cost if 60 minutes: <span id="cost-60min">$0.00</span></div>
-    
-    <h3>Potential Savings:</h3>
-    <div class="savings">If ended 5 minutes early: <span id="save-5min">$0.00</span></div>
-    <div class="savings">If ended 10 minutes early: <span id="save-10min">$0.00</span></div>
-    <div class="savings">If ended 15 minutes early: <span id="save-15min">$0.00</span></div>
-    
-    <button id="start-meeting">Start Meeting</button>
-    <button id="stop-meeting">Stop Meeting</button>
-    <button id="reset-calculator">Reset Calculator</button>
-
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script>
-        const employeeSelect = $('#employee-select');
-        const totalCostDiv = $('#total-cost');
-
-        let attendees = [];
-        let totalCost = 0;
-        let costPerMinute = 0;
-        let meetingInterval = null;
-        let employeeData = [];
-
-        async function loadEmployeeData() {
-            try {
-                const response = await fetch('napa-2022.csv');
-                if (!response.ok) {
-                    console.error('Network response was not ok', response);
-                    return [];
+        const { h, Component, render } = preact;
+        
+        class MeetingCostCalculator extends Component {
+            constructor() {
+                super();
+                this.state = {
+                    attendees: [],
+                    totalCost: 0,
+                    costPerMinute: 0,
+                    meetingInterval: null,
+                    employeeData: [],
+                    darkMode: false
+                };
+            }
+            
+            async loadEmployeeData() {
+                try {
+                    const response = await fetch('napa-2022.csv');
+                    const csvText = await response.text();
+                    this.setState({ employeeData: $.csv.toObjects(csvText) });
+                } catch (error) {
+                    console.error('Error in fetching and parsing CSV data:', error);
                 }
-                const csvText = await response.text();
-                employeeData = $.csv.toObjects(csvText);
-                return employeeData;
-            } catch (error) {
-                console.error('Error in fetching and parsing CSV data:', error);
-                return [];
+            }
+
+            componentDidMount() {
+                this.loadEmployeeData();
+                $('#employee-select').select2({
+                    placeholder: 'Select attendees',
+                    allowClear: true
+                });
+            }
+            
+            updateMeetingCost = () => {
+                const newCost = this.state.totalCost + this.state.costPerMinute / 60;
+                this.setState({ totalCost: newCost });
+            }
+
+            startMeeting = () => {
+                const selectedIndices = $('#employee-select').val();
+                const attendees = selectedIndices.map(index => this.state.employeeData[parseInt(index)]);
+                const costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
+                
+                const meetingInterval = setInterval(this.updateMeetingCost, 1000);
+                this.setState({ attendees, costPerMinute, meetingInterval });
+            }
+
+            stopMeeting = () => {
+                clearInterval(this.state.meetingInterval);
+                this.setState({ meetingInterval: null });
+            }
+
+            resetCalculator = () => {
+                clearInterval(this.state.meetingInterval);
+                this.setState({ totalCost: 0, costPerMinute: 0, attendees: [], meetingInterval: null });
+                $('#employee-select').val(null).trigger('change');
+            }
+            
+            toggleDarkMode = () => {
+                this.setState({ darkMode: !this.state.darkMode });
+            }
+
+            render() {
+                const { employeeData, totalCost, costPerMinute, darkMode } = this.state;
+                document.body.classList.toggle('dark-mode', darkMode);
+                
+                return (
+                    <div>
+                        <h1>Meeting Cost Calculator</h1>
+                        <button onClick={this.toggleDarkMode}>Toggle Dark Mode</button>
+
+                        <label for="employee-select">Select Meeting Attendees:</label>
+                        <select id="employee-select" style="width: 50%;" multiple="multiple">
+                            {employeeData.map((employee, index) => (
+                                <option value={index}>{employee['Employee Name']}</option>
+                            ))}
+                        </select>
+                        
+                        <h2>Total cost of this meeting:</h2>
+                        <div id="total-cost">${totalCost.toFixed(2)}</div>
+                        
+                        <h3>Projected Costs:</h3>
+                        <div class="projection">Cost if 15 minutes: ${ (costPerMinute * 15).toFixed(2)}</div>
+                        <div class="projection">Cost if 30 minutes: ${ (costPerMinute * 30).toFixed(2)}</div>
+                        <div class="projection">Cost if 60 minutes: ${ (costPerMinute * 60).toFixed(2)}</div>
+                        
+                        <h3>Potential Savings:</h3>
+                        <div class="savings">If ended 5 minutes early: ${ (costPerMinute * 5).toFixed(2)}</div>
+                        <div class="savings">If ended 10 minutes early: ${ (costPerMinute * 10).toFixed(2)}</div>
+                        <div class="savings">If ended 15 minutes early: ${ (costPerMinute * 15).toFixed(2)}</div>
+                        
+                        <button onClick={this.startMeeting}>Start Meeting</button>
+                        <button onClick={this.stopMeeting}>Stop Meeting</button>
+                        <button onClick={this.resetCalculator}>Reset Calculator</button>
+                    </div>
+                );
             }
         }
 
-        loadEmployeeData().then(employeeData => {
-            if (employeeData.length === 0) {
-                console.error('No employee data loaded from CSV.');
-                return;
-            }
-            employeeData.forEach((employee, index) => {
-                const option = new Option(employee['Employee Name'], index);
-                employeeSelect.append(option);
-            });
-            employeeSelect.select2({
-                placeholder: 'Select attendees',
-                allowClear: true
-            });
-        }).catch(error => {
-            console.error('Error in loading employee data:', error);
-        });
-
-        function updateMeetingCost() {
-            totalCost += costPerMinute / 60; // Update cost every second
-            totalCostDiv.text(`$${totalCost.toFixed(2)}`);
-            
-            // Projected costs
-            $('#cost-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
-            $('#cost-30min').text(`$${(costPerMinute * 30).toFixed(2)}`);
-            $('#cost-60min').text(`$${(costPerMinute * 60).toFixed(2)}`);
-            
-            // Potential savings
-            $('#save-5min').text(`$${(costPerMinute * 5).toFixed(2)}`);
-            $('#save-10min').text(`$${(costPerMinute * 10).toFixed(2)}`);
-            $('#save-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
-        }
-
-        $('#start-meeting').click(() => {
-            const selectedIndices = employeeSelect.val();
-            attendees = selectedIndices.map(index => employeeData[parseInt(index)]);
-            costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
-            meetingInterval = setInterval(updateMeetingCost, 1000); // Update every second
-        });
-
-        $('#stop-meeting').click(() => {
-            clearInterval(meetingInterval);
-        });
-
-        $('#reset-calculator').click(() => {
-            clearInterval(meetingInterval);
-            totalCost = 0;
-            costPerMinute = 0;
-            attendees = [];
-            totalCostDiv.text('$0.00');
-            employeeSelect.val(null).trigger('change');
-            // Reset projected costs and savings
-            $('.projection span, .savings span').text('$0.00');
-        });
-
-        totalCostDiv.text('$0.00');
+        render(<MeetingCostCalculator />, document.getElementById('app'));
     </script>
 </body>
 </html>
