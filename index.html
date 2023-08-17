@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meeting Cost Calculator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/preact/10.17.0/preact.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -35,161 +35,174 @@
     </style>
 </head>
 <body>
+    <h1>Meeting Cost Calculator</h1>
+    
+    <label for="employee-select">Select Meeting Attendees:</label>
+    <select id="employee-select" style="width: 50%;" multiple="multiple"></select>
+    
+    <h2>Total cost of this meeting:</h2>
+    <div id="total-cost">$0.00</div>
+    
+    <h2>Elapsed Time:</h2>
+    <div id="timer">00:00:00</div>
+    
+    <h3>Projected Costs:</h3>
+    <div class="projection">Cost if 15 minutes: <span id="cost-15min">$0.00</span></div>
+    <div class="projection">Cost if 30 minutes: <span id="cost-30min">$0.00</span></div>
+    <div class="projection">Cost if 60 minutes: <span id="cost-60min">$0.00</span></div>
+    
+    <h3>Potential Savings:</h3>
+    <div class="savings">If ended 5 minutes early: <span id="save-5min">$0.00</span></div>
+    <div class="savings">If ended 10 minutes early: <span id="save-10min">$0.00</span></div>
+    <div class="savings">If ended 15 minutes early: <span id="save-15min">$0.00</span></div>
+    
+    <button id="start-meeting">Start Meeting</button>
+    <button id="stop-meeting">Stop Meeting</button>
+    <button id="reset-calculator">Reset Calculator</button>
 
-<div id="app"></div>
+    <div id="share-link">
+        <span>Share Link: </span>
+        <input type="text" id="shareable-link" readonly />
+        <button id="copy-button" data-clipboard-target="#shareable-link">Copy Link</button>
+    </div>
+    
+    <h2>Data Source:</h2>
+    <p>
+        Employee salary data sourced from 
+        <a href="https://transparentcalifornia.com/salaries/2022/napa/" target="_blank" rel="noopener noreferrer">
+            Transparent California
+        </a>.
+    </p>
+    
+    <h2>Download Data:</h2>
+    <p>
+        <a href="napa-2022.csv" download>
+            Download the Napa 2022 Employee Salary Data (CSV)
+        </a>
+    </p>
 
-<script>
-    const { h, Component, render } = preact;
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
+    <script>
+        const employeeSelect = $('#employee-select');
+        const totalCostDiv = $('#total-cost');
+        const timerDiv = $('#timer');
 
-    class App extends Component {
-        state = {
-            employeeData: [],
-            selectedEmployees: [],
-            totalCost: 0,
-            costPerMinute: 0,
-            meetingInterval: null,
-            startTime: null,
-            elapsedSeconds: 0,
-            shareableLink: ''
-        };
+        let attendees = [];
+        let totalCost = 0;
+        let costPerMinute = 0;
+        let meetingInterval = null;
+        let employeeData = [];
+        let startTime = null;
 
-        async componentDidMount() {
+        async function loadEmployeeData() {
             try {
                 const response = await fetch('napa-2022.csv');
                 const csvText = await response.text();
-                const employeeData = this.csvToObjects(csvText);
-                this.setState({ employeeData });
-                this.preselectAttendeesFromURL();
+                employeeData = $.csv.toObjects(csvText);
+                return employeeData;
             } catch (error) {
                 console.error('Error in fetching and parsing CSV data:', error);
+                return [];
             }
         }
 
-        csvToObjects(csvText) {
-            const lines = csvText.split('\n');
-            const headers = lines[0].split(',');
-            return lines.slice(1).map(line => {
-                const data = line.split(',');
-                return headers.reduce((obj, header, index) => {
-                    obj[header] = data[index];
-                    return obj;
-                }, {});
-            });
-        }
-
-        formatTime(seconds) {
+        function formatTime(seconds) {
             const hours = Math.floor(seconds / 3600);
             const minutes = Math.floor((seconds % 3600) / 60);
             const sec = seconds % 60;
             return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
         }
 
-        updateMeetingCost = () => {
-            const elapsedSeconds = Math.floor((Date.now() - this.state.startTime) / 1000);
-            const totalCost = this.state.totalCost + (this.state.costPerMinute / 60);
-            this.setState({ totalCost, elapsedSeconds });
-        };
+        function updateMeetingCost() {
+            const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+            timerDiv.text(formatTime(elapsedSeconds));
 
-        startMeeting = () => {
-            const attendees = this.state.selectedEmployees.map(index => this.state.employeeData[index]);
-            const costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
-            const meetingInterval = setInterval(this.updateMeetingCost, 1000); // Update every second
-            this.setState({ costPerMinute, meetingInterval, startTime: Date.now() });
-        };
+            totalCost += costPerMinute / 60; // Update cost every second
+            totalCostDiv.text(`$${totalCost.toFixed(2)}`);
+            
+            // Projected costs
+            $('#cost-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
+            $('#cost-30min').text(`$${(costPerMinute * 30).toFixed(2)}`);
+            $('#cost-60min').text(`$${(costPerMinute * 60).toFixed(2)}`);
+            
+            // Potential savings
+            $('#save-5min').text(`$${(costPerMinute * 5).toFixed(2)}`);
+            $('#save-10min').text(`$${(costPerMinute * 10).toFixed(2)}`);
+            $('#save-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
+        }
 
-        stopMeeting = () => {
-            clearInterval(this.state.meetingInterval);
-            this.setState({ meetingInterval: null });
-        };
+        $('#start-meeting').click(() => {
+            const selectedIndices = employeeSelect.val();
+            attendees = selectedIndices.map(index => employeeData[parseInt(index)]);
+            costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
+            startTime = Date.now();
+            meetingInterval = setInterval(updateMeetingCost, 1000); // Update every second
+        });
 
-        resetCalculator = () => {
-            clearInterval(this.state.meetingInterval);
-            this.setState({
-                totalCost: 0,
-                costPerMinute: 0,
-                selectedEmployees: [],
-                meetingInterval: null,
-                startTime: null,
-                elapsedSeconds: 0
-            });
-        };
+        $('#stop-meeting').click(() => {
+            clearInterval(meetingInterval);
+        });
 
-        generateShareableLink = () => {
+        $('#reset-calculator').click(() => {
+            clearInterval(meetingInterval);
+            totalCost = 0;
+            costPerMinute = 0;
+            attendees = [];
+            totalCostDiv.text('$0.00');
+            timerDiv.text('00:00:00');
+            employeeSelect.val(null).trigger('change');
+            // Reset projected costs and savings
+            $('.projection span, .savings span').text('$0.00');
+        });
+
+        function generateShareableLink() {
+            const selectedIndices = employeeSelect.val();
             const baseUrl = window.location.href.split('?')[0];
-            const queryParams = this.state.selectedEmployees.map(index => `attendee=${index}`).join('&');
+            const queryParams = selectedIndices.map(index => `attendee=${index}`).join('&');
             const shareableLink = `${baseUrl}?${queryParams}`;
-            this.setState({ shareableLink });
-        };
+            
+            // Display the link in the input field
+            $('#shareable-link').val(shareableLink);
+        }
 
-        preselectAttendeesFromURL() {
+        function preselectAttendeesFromURL() {
             const urlParams = new URLSearchParams(window.location.search);
-            const selectedEmployees = urlParams.getAll('attendee').map(index => parseInt(index, 10));
-            this.setState({ selectedEmployees }, this.generateShareableLink);
+            const selectedIndices = urlParams.getAll('attendee');
+            employeeSelect.val(selectedIndices).trigger('change');
         }
 
-        handleEmployeeSelectChange = (event) => {
-            const selectedEmployees = Array.from(event.target.options)
-                .filter(option => option.selected)
-                .map(option => parseInt(option.value, 10));
-            this.setState({ selectedEmployees }, this.generateShareableLink);
-        };
+        // When attendees are added or removed, update the shareable link
+        employeeSelect.on('change', generateShareableLink);
+        
+        // Initialize ClipboardJS
+        new ClipboardJS('#copy-button');
+        
+        loadEmployeeData().then(employeeData => {
+            if (employeeData.length === 0) {
+                console.error('No employee data loaded from CSV.');
+                return;
+            }
+            employeeData.forEach((employee, index) => {
+                const option = new Option(employee['Employee Name'], index);
+                employeeSelect.append(option);
+            });
+            employeeSelect.select2({
+                placeholder: 'Select attendees',
+                allowClear: true
+            });
+            
+            // Preselect attendees from the URL after loading employee data
+            preselectAttendeesFromURL();
+            
+        }).catch(error => {
+            console.error('Error in loading employee data:', error);
+        });
 
-        render(_, state) {
-            return (
-                h('div', null, 
-                    h('h1', null, 'Meeting Cost Calculator'),
-                    h('label', { for: 'employee-select' }, 'Select Meeting Attendees:'),
-                    h('select', { id: 'employee-select', style: { width: '50%' }, multiple: true, onChange: this.handleEmployeeSelectChange, value: state.selectedEmployees },
-                        state.employeeData.map((employee, index) => 
-                            h('option', { value: index }, employee['Employee Name'])
-                        )
-                    ),
-                    h('h2', null, 'Total cost of this meeting:'),
-                    h('div', { id: 'total-cost' }, `$${state.totalCost.toFixed(2)}`),
-                    h('h2', null, 'Elapsed Time:'),
-                    h('div', { id: 'timer' }, this.formatTime(state.elapsedSeconds)),
-                    h('h3', null, 'Projected Costs:'),
-                    h('div', { class: 'projection' }, `Cost if 15 minutes: $${(state.costPerMinute * 15).toFixed(2)}`),
-                    h('div', { class: 'projection' }, `Cost if 30 minutes: $${(state.costPerMinute * 30).toFixed(2)}`),
-                    h('div', { class: 'projection' }, `Cost if 60 minutes: $${(state.costPerMinute * 60).toFixed(2)}`),
-                    h('h3', null, 'Potential Savings:'),
-                    h('div', { class: 'savings' }, `If ended 5 minutes early: $${(state.costPerMinute * 5).toFixed(2)}`),
-                    h('div', { class: 'savings' }, `If ended 10 minutes early: $${(state.costPerMinute * 10).toFixed(2)}`),
-                    h('div', { class: 'savings' }, `If ended 15 minutes early: $${(state.costPerMinute * 15).toFixed(2)}`),
-                    h('button', { onClick: this.startMeeting }, 'Start Meeting'),
-                    h('button', { onClick: this.stopMeeting }, 'Stop Meeting'),
-                    h('button', { onClick: this.resetCalculator }, 'Reset Calculator'),
-                    h('div', { id: 'share-link' },
-                        h('span', null, 'Share Link: '),
-                        h('input', { type: 'text', id: 'shareable-link', readonly: true, value: state.shareableLink }),
-                        h('button', { id: 'copy-button', 'data-clipboard-target': '#shareable-link' }, 'Copy Link')
-                    ),
-                    h('h2', null, 'Data Source:'),
-                    h('p', null,
-                        'Employee salary data sourced from ',
-                        h('a', { href: 'https://transparentcalifornia.com/salaries/2022/napa/', target: '_blank', rel: 'noopener noreferrer' },
-                            'Transparent California'
-                        ),
-                        '.'
-                    ),
-                    h('h2', null, 'Download Data:'),
-                    h('p', null,
-                        h('a', { href: 'napa-2022.csv', download: true },
-                            'Download the Napa 2022 Employee Salary Data (CSV)'
-                        )
-                    )
-                )
-            );
-        }
-    }
-
-    render(h(App), document.getElementById('app'));
-</script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
-<script>
-    new ClipboardJS('#copy-button');
-</script>
-
+        totalCostDiv.text('$0.00');
+        timerDiv.text('00:00:00');
+    </script>
 </body>
 </html>
