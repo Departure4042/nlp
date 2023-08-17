@@ -15,6 +15,9 @@
             font-weight: bold;
             color: #e44d26;
         }
+        .projection, .savings {
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
@@ -27,6 +30,16 @@
     
     <h2>Total cost of this meeting:</h2>
     <div id="total-cost">$0.00</div>
+    
+    <h3>Projected Costs:</h3>
+    <div class="projection">Cost if 15 minutes: <span id="cost-15min">$0.00</span></div>
+    <div class="projection">Cost if 30 minutes: <span id="cost-30min">$0.00</span></div>
+    <div class="projection">Cost if 60 minutes: <span id="cost-60min">$0.00</span></div>
+    
+    <h3>Potential Savings:</h3>
+    <div class="savings">If ended 5 minutes early: <span id="save-5min">$0.00</span></div>
+    <div class="savings">If ended 10 minutes early: <span id="save-10min">$0.00</span></div>
+    <div class="savings">If ended 15 minutes early: <span id="save-15min">$0.00</span></div>
     
     <button id="start-meeting">Start Meeting</button>
     <button id="stop-meeting">Stop Meeting</button>
@@ -79,15 +92,25 @@
         });
 
         function updateMeetingCost() {
-            totalCost += costPerMinute;
+            totalCost += costPerMinute / 60; // Update cost every second
             totalCostDiv.text(`$${totalCost.toFixed(2)}`);
+            
+            // Projected costs
+            $('#cost-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
+            $('#cost-30min').text(`$${(costPerMinute * 30).toFixed(2)}`);
+            $('#cost-60min').text(`$${(costPerMinute * 60).toFixed(2)}`);
+            
+            // Potential savings
+            $('#save-5min').text(`$${(costPerMinute * 5).toFixed(2)}`);
+            $('#save-10min').text(`$${(costPerMinute * 10).toFixed(2)}`);
+            $('#save-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
         }
 
         $('#start-meeting').click(() => {
             const selectedIndices = employeeSelect.val();
             attendees = selectedIndices.map(index => employeeData[parseInt(index)]);
             costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
-            meetingInterval = setInterval(updateMeetingCost, 60000); // Update every minute
+            meetingInterval = setInterval(updateMeetingCost, 1000); // Update every second
         });
 
         $('#stop-meeting').click(() => {
@@ -101,6 +124,8 @@
             attendees = [];
             totalCostDiv.text('$0.00');
             employeeSelect.val(null).trigger('change');
+            // Reset projected costs and savings
+            $('.projection span, .savings span').text('$0.00');
         });
 
         totalCostDiv.text('$0.00');
