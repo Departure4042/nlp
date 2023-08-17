@@ -10,89 +10,41 @@
             font-family: Arial, sans-serif;
             margin: 20px;
         }
-        #yodeler-area {
-            height: 300px;
-            position: relative;
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            font-size: 50px; /* Make the emojis larger */
-            line-height: 0.6;
-            background: repeat-y left bottom;
-        }
-        .yodeler {
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-        @keyframes fall {
-            from {
-                bottom: 90%;
-            }
-            to {
-                bottom: 0;
-            }
-        }
-        #total-cost, #saved-amount {
+        #total-cost {
             font-size: 24px;
             font-weight: bold;
             color: #e44d26;
-        }
-        #dollars-saved {
-            display: none;
         }
     </style>
 </head>
 <body>
     <h1>Meeting Cost Calculator</h1>
     
-    <label for="employee-select">Add Employee to Meeting:</label>
-    <select id="employee-select" style="width: 50%;">
+    <label for="employee-select">Select Meeting Attendees:</label>
+    <select id="employee-select" style="width: 50%;" multiple="multiple">
         <!-- Employee options will be populated here from the CSV data -->
     </select>
-    <button id="add-employee">Add Employee to Meeting</button>
-    
-    <h2>Current Meeting Attendees:</h2>
-    <ul id="attendees-list">
-        <!-- List of employees in the meeting will be populated here -->
-    </ul>
-    
-    <h2>Yodeler:</h2>
-    <div id="yodeler-area">
-        <span class="yodeler">🧗‍♂️</span>
-    </div>
     
     <h2>Total cost of this meeting:</h2>
     <div id="total-cost">$0.00</div>
     
     <button id="start-meeting">Start Meeting</button>
-    <button id="end-meeting">End Meeting</button>
-    
-    <div id="dollars-saved">
-        <h2>Dollars saved by ending early:</h2>
-        <div id="saved-amount">$0.00</div>
-    </div>
+    <button id="stop-meeting">Stop Meeting</button>
+    <button id="reset-calculator">Reset Calculator</button>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script>
-        // Elements from the HTML
         const employeeSelect = $('#employee-select');
-        const attendeesList = $('#attendees-list');
         const totalCostDiv = $('#total-cost');
-        const yodeler = $('.yodeler');
-        const dollarsSavedDiv = $('#dollars-saved');
-        const savedAmountDiv = $('#saved-amount');
 
-        // Variables to keep track of the meeting state
         let attendees = [];
         let totalCost = 0;
         let costPerMinute = 0;
         let meetingInterval = null;
         let employeeData = [];
 
-        // Function to read and parse the CSV file
         async function loadEmployeeData() {
             try {
                 const response = await fetch('napa-2022.csv');
@@ -109,74 +61,49 @@
             }
         }
 
-        // Populate the employee dropdown
         loadEmployeeData().then(employeeData => {
             if (employeeData.length === 0) {
                 console.error('No employee data loaded from CSV.');
                 return;
             }
-            
             employeeData.forEach((employee, index) => {
                 const option = new Option(employee['Employee Name'], index);
                 employeeSelect.append(option);
             });
-
-            // Transform the select box into a searchable select box with Select2
             employeeSelect.select2({
-                placeholder: 'Select an employee',
+                placeholder: 'Select attendees',
                 allowClear: true
             });
         }).catch(error => {
             console.error('Error in loading employee data:', error);
         });
 
-        // Add employee to the meeting
-        $('#add-employee').click(() => {
-            const selectedIndex = employeeSelect.val();
-            if (selectedIndex !== null) {
-                const selectedEmployee = employeeData[parseInt(selectedIndex)];
-                if (!attendees.includes(selectedEmployee)) {
-                    attendees.push(selectedEmployee);
+        function updateMeetingCost() {
+            totalCost += costPerMinute;
+            totalCostDiv.text(`$${totalCost.toFixed(2)}`);
+        }
 
-                    const li = $('<li></li>').text(selectedEmployee['Employee Name']);
-                    attendeesList.append(li);
-
-                    // Update the cost per minute
-                    costPerMinute += parseFloat(selectedEmployee['Base Pay']) / (52 * 40 * 60);
-                }
-            }
-        });
-
-        // Start the meeting
         $('#start-meeting').click(() => {
-            // Start a timer to update the meeting cost every minute
-            meetingInterval = setInterval(() => {
-                totalCost += costPerMinute;
-                totalCostDiv.text(`$${totalCost.toFixed(2)}`);
-                // Animate the Yodeler (e.g., move it up by 1% of the div)
-                yodeler.css('bottom', `${parseFloat(yodeler.css('bottom') || 0) + 1}%`);
-            }, 60000); // 60000 milliseconds = 1 minute
+            const selectedIndices = employeeSelect.val();
+            attendees = selectedIndices.map(index => employeeData[parseInt(index)]);
+            costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
+            meetingInterval = setInterval(updateMeetingCost, 60000); // Update every minute
         });
 
-        // End the meeting
-        $('#end-meeting').click(() => {
-            clearInterval(meetingInterval); // Stop the timer
-            const thresholdCost = 1000; // Define a threshold for falling off the cliff
-            
-            if (totalCost < thresholdCost) {
-                const dollarsSaved = thresholdCost - totalCost;
-                dollarsSavedDiv.show();
-                savedAmountDiv.text(`$${dollarsSaved.toFixed(2)}`);
-            } else {
-                // Yodeler falls off the cliff
-                yodeler.css('animation', 'fall 2s ease-in forwards');
-                yodeler.text('🤕'); // Change the Yodeler emoji to a face with a bandage
-            }
+        $('#stop-meeting').click(() => {
+            clearInterval(meetingInterval);
         });
 
-        // Initialize the page with some default values
+        $('#reset-calculator').click(() => {
+            clearInterval(meetingInterval);
+            totalCost = 0;
+            costPerMinute = 0;
+            attendees = [];
+            totalCostDiv.text('$0.00');
+            employeeSelect.val(null).trigger('change');
+        });
+
         totalCostDiv.text('$0.00');
-        yodeler.css('bottom', '0%');
     </script>
 </body>
 </html>
