@@ -39,6 +39,7 @@
     <select id="employee-select" style="width: 50%;">
         <!-- Employee options will be populated here from the CSV data -->
     </select>
+    <button id="add-employee">Add Employee to Meeting</button>
     
     <h2>Current Meeting Attendees:</h2>
     <ul id="attendees-list">
@@ -79,16 +80,32 @@
         let totalCost = 0;
         let costPerMinute = 0;
         let meetingInterval = null;
+        let employeeData = [];
 
         // Function to read and parse the CSV file
         async function loadEmployeeData() {
-            const response = await fetch('napa-2022.csv');
-            const csvText = await response.text();
-            return $.csv.toObjects(csvText);
+            try {
+                const response = await fetch('napa-2022.csv');
+                if (!response.ok) {
+                    console.error('Network response was not ok', response);
+                    return [];
+                }
+                const csvText = await response.text();
+                employeeData = $.csv.toObjects(csvText);
+                return employeeData;
+            } catch (error) {
+                console.error('Error in fetching and parsing CSV data:', error);
+                return [];
+            }
         }
 
         // Populate the employee dropdown
         loadEmployeeData().then(employeeData => {
+            if (employeeData.length === 0) {
+                console.error('No employee data loaded from CSV.');
+                return;
+            }
+            
             employeeData.forEach((employee, index) => {
                 const option = new Option(employee['Employee Name'], index);
                 employeeSelect.append(option);
@@ -99,19 +116,25 @@
                 placeholder: 'Select an employee',
                 allowClear: true
             });
+        }).catch(error => {
+            console.error('Error in loading employee data:', error);
+        });
 
-            // Add employee to the meeting
-            $('#add-employee').click(() => {
-                const selectedIndex = employeeSelect.val();
-                const selectedEmployee = employeeData[selectedIndex];
-                attendees.push(selectedEmployee);
-                
-                const li = $('<li></li>').text(selectedEmployee['Employee Name']);
-                attendeesList.append(li);
-                
-                // Update the cost per minute
-                costPerMinute += parseFloat(selectedEmployee['Base Pay']) / (52 * 40 * 60);
-            });
+        // Add employee to the meeting
+        $('#add-employee').click(() => {
+            const selectedIndex = employeeSelect.val();
+            if (selectedIndex !== null) {
+                const selectedEmployee = employeeData[parseInt(selectedIndex)];
+                if (!attendees.includes(selectedEmployee)) {
+                    attendees.push(selectedEmployee);
+
+                    const li = $('<li></li>').text(selectedEmployee['Employee Name']);
+                    attendeesList.append(li);
+
+                    // Update the cost per minute
+                    costPerMinute += parseFloat(selectedEmployee['Base Pay']) / (52 * 40 * 60);
+                }
+            }
         });
 
         // Start the meeting
