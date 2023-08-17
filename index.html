@@ -168,6 +168,12 @@
             $('#shareable-link').val(shareableLink);
         }
 
+        function preselectAttendeesFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const selectedIndices = urlParams.getAll('attendee');
+            employeeSelect.val(selectedIndices).trigger('change');
+        }
+
         // When attendees are added or removed, update the shareable link
         employeeSelect.on('change', generateShareableLink);
         
@@ -187,6 +193,10 @@
                 placeholder: 'Select attendees',
                 allowClear: true
             });
+            
+            // Preselect attendees from the URL after loading employee data
+            preselectAttendeesFromURL();
+            
         }).catch(error => {
             console.error('Error in loading employee data:', error);
         });
