@@ -10,7 +10,7 @@
             font-family: Arial, sans-serif;
             margin: 20px;
         }
-        #total-cost {
+        #total-cost, #timer {
             font-size: 24px;
             font-weight: bold;
             color: #e44d26;
@@ -30,6 +30,9 @@
     
     <h2>Total cost of this meeting:</h2>
     <div id="total-cost">$0.00</div>
+    
+    <h2>Elapsed Time:</h2>
+    <div id="timer">00:00:00</div>
     
     <h3>Projected Costs:</h3>
     <div class="projection">Cost if 15 minutes: <span id="cost-15min">$0.00</span></div>
@@ -51,20 +54,18 @@
     <script>
         const employeeSelect = $('#employee-select');
         const totalCostDiv = $('#total-cost');
+        const timerDiv = $('#timer');
 
         let attendees = [];
         let totalCost = 0;
         let costPerMinute = 0;
         let meetingInterval = null;
         let employeeData = [];
+        let startTime = null;
 
         async function loadEmployeeData() {
             try {
                 const response = await fetch('napa-2022.csv');
-                if (!response.ok) {
-                    console.error('Network response was not ok', response);
-                    return [];
-                }
                 const csvText = await response.text();
                 employeeData = $.csv.toObjects(csvText);
                 return employeeData;
@@ -74,24 +75,17 @@
             }
         }
 
-        loadEmployeeData().then(employeeData => {
-            if (employeeData.length === 0) {
-                console.error('No employee data loaded from CSV.');
-                return;
-            }
-            employeeData.forEach((employee, index) => {
-                const option = new Option(employee['Employee Name'], index);
-                employeeSelect.append(option);
-            });
-            employeeSelect.select2({
-                placeholder: 'Select attendees',
-                allowClear: true
-            });
-        }).catch(error => {
-            console.error('Error in loading employee data:', error);
-        });
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const sec = seconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        }
 
         function updateMeetingCost() {
+            const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+            timerDiv.text(formatTime(elapsedSeconds));
+
             totalCost += costPerMinute / 60; // Update cost every second
             totalCostDiv.text(`$${totalCost.toFixed(2)}`);
             
@@ -110,6 +104,7 @@
             const selectedIndices = employeeSelect.val();
             attendees = selectedIndices.map(index => employeeData[parseInt(index)]);
             costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
+            startTime = Date.now();
             meetingInterval = setInterval(updateMeetingCost, 1000); // Update every second
         });
 
@@ -123,12 +118,31 @@
             costPerMinute = 0;
             attendees = [];
             totalCostDiv.text('$0.00');
+            timerDiv.text('00:00:00');
             employeeSelect.val(null).trigger('change');
             // Reset projected costs and savings
             $('.projection span, .savings span').text('$0.00');
         });
 
+        loadEmployeeData().then(employeeData => {
+            if (employeeData.length === 0) {
+                console.error('No employee data loaded from CSV.');
+                return;
+            }
+            employeeData.forEach((employee, index) => {
+                const option = new Option(employee['Employee Name'], index);
+                employeeSelect.append(option);
+            });
+            employeeSelect.select2({
+                placeholder: 'Select attendees',
+                allowClear: true
+            });
+        }).catch(error => {
+            console.error('Error in loading employee data:', error);
+        });
+
         totalCostDiv.text('$0.00');
+        timerDiv.text('00:00:00');
     </script>
 </body>
 </html>
