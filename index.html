@@ -18,15 +18,27 @@
         .projection, .savings {
             font-size: 18px;
         }
+        #share-link {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+        }
+        #copy-button {
+            margin-left: 10px;
+            cursor: pointer;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
     <h1>Meeting Cost Calculator</h1>
     
     <label for="employee-select">Select Meeting Attendees:</label>
-    <select id="employee-select" style="width: 50%;" multiple="multiple">
-        <!-- Employee options will be populated here from the CSV data -->
-    </select>
+    <select id="employee-select" style="width: 50%;" multiple="multiple"></select>
     
     <h2>Total cost of this meeting:</h2>
     <div id="total-cost">$0.00</div>
@@ -47,8 +59,13 @@
     <button id="start-meeting">Start Meeting</button>
     <button id="stop-meeting">Stop Meeting</button>
     <button id="reset-calculator">Reset Calculator</button>
-    <button id="share-meeting">Share Meeting</button>
 
+    <div id="share-link">
+        <span>Share Link: </span>
+        <input type="text" id="shareable-link" readonly />
+        <button id="copy-button" data-clipboard-target="#shareable-link">Copy Link</button>
+    </div>
+    
     <h2>Data Source:</h2>
     <p>
         Employee salary data sourced from 
@@ -67,6 +84,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
     <script>
         const employeeSelect = $('#employee-select');
         const totalCostDiv = $('#total-cost');
@@ -146,19 +164,16 @@
             const queryParams = selectedIndices.map(index => `attendee=${index}`).join('&');
             const shareableLink = `${baseUrl}?${queryParams}`;
             
-            // Copy the link to clipboard or display it to the user
-            // For this example, we'll just alert it for demonstration purposes
-            alert(`Share this link to pre-populate attendees: ${shareableLink}`);
+            // Display the link in the input field
+            $('#shareable-link').val(shareableLink);
         }
 
-        $('#share-meeting').click(generateShareableLink);
-
-        function preselectAttendeesFromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const selectedIndices = urlParams.getAll('attendee');
-            employeeSelect.val(selectedIndices).trigger('change');
-        }
-
+        // When attendees are added or removed, update the shareable link
+        employeeSelect.on('change', generateShareableLink);
+        
+        // Initialize ClipboardJS
+        new ClipboardJS('#copy-button');
+        
         loadEmployeeData().then(employeeData => {
             if (employeeData.length === 0) {
                 console.error('No employee data loaded from CSV.');
@@ -172,10 +187,6 @@
                 placeholder: 'Select attendees',
                 allowClear: true
             });
-            
-            // Pre-select attendees from the URL after loading employee data
-            preselectAttendeesFromURL();
-            
         }).catch(error => {
             console.error('Error in loading employee data:', error);
         });
