@@ -57,6 +57,12 @@
         #copy-button {
             align-self: flex-end;
         }
+        .attendee {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
         @media (max-width: 600px) {
             body {
                 margin: 10px;
@@ -113,6 +119,10 @@
             <button id="copy-button" data-clipboard-target="#shareable-link">Copy Link</button>
         </div>
         
+        <div class="controls-section" id="attendee-details">
+            <h3>Attendee Details</h3>
+        </div>
+
         <h2>Data Source:</h2>
         <p>
             Employee salary data sourced from 
@@ -181,21 +191,27 @@
             costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
             startTime = Date.now();
             meetingInterval = setInterval(updateMeetingCost, 1000);
+
+            const attendeeDetailsSection = $('#attendee-details');
+            attendeeDetailsSection.empty();
+            attendeeDetailsSection.append('<h3>Attendee Details</h3>');
+            
+            attendees.forEach(attendee => {
+                const attendeeDetail = $('<div class="attendee"></div>');
+                attendeeDetail.append(`<p>Name: ${attendee['Employee Name']}</p>`);
+                attendeeDetail.append(`<p>Job Title: ${attendee['Job Title']}</p>`);
+                attendeeDetail.append(`<p>Base Pay: $${parseFloat(attendee['Base Pay']).toFixed(2)}</p>`);
+                attendeeDetail.append(`<p>Total Pay & Benefits: $${parseFloat(attendee['Total Pay & Benefits']).toFixed(2)}</p>`);
+                attendeeDetailsSection.append(attendeeDetail);
+            });
         });
 
-        $('#stop-meeting').click(() => {
-            clearInterval(meetingInterval);
-        });
 
-        $('#reset-calculator').click(() => {
+        $('#stop-meeting, #reset-calculator').click(() => {
             clearInterval(meetingInterval);
-            totalCost = 0;
-            costPerMinute = 0;
-            attendees = [];
-            totalCostDiv.text('$0.00');
-            timerDiv.text('00:00:00');
-            employeeSelect.val(null).trigger('change');
-            $('.projection span, .savings span').text('$0.00');
+            const attendeeDetailsSection = $('#attendee-details');
+            attendeeDetailsSection.empty();
+            attendeeDetailsSection.append('<h3>Attendee Details</h3>');
         });
 
         function generateShareableLink() {
