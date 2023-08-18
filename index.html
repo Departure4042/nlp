@@ -72,7 +72,13 @@
 </head>
 <body>
     <h1>Meeting Cost Calculator</h1>
-    
+
+    <label for="data-source-select">Select Data Source:</label>
+    <select id="data-source-select">
+        <option value="napa-2022.csv">City of Napa 2022</option>
+        <option value="napa-county-2022.csv">Napa County 2022</option>
+    </select>
+
     <label for="employee-select">Select Meeting Attendees:</label>
     <select id="employee-select" style="width: 50%;" multiple="multiple"></select>
     
@@ -105,23 +111,17 @@
     <h2>Data Source:</h2>
     <p>
         Employee salary data sourced from 
-        <a href="https://transparentcalifornia.com/salaries/2022/napa/" target="_blank" rel="noopener noreferrer">
+        <a href="https://transparentcalifornia.com/" target="_blank" rel="noopener noreferrer">
             Transparent California
         </a>.
     </p>
     
-    <h2>Download Data:</h2>
-    <p>
-        <a href="napa-2022.csv" download>
-            Download the Napa 2022 Employee Salary Data (CSV)
-        </a>
-    </p>
-
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
     <script>
+        const dataSourceSelect = $('#data-source-select');
         const employeeSelect = $('#employee-select');
         const totalCostDiv = $('#total-cost');
         const timerDiv = $('#timer');
@@ -133,9 +133,9 @@
         let employeeData = [];
         let startTime = null;
 
-        async function loadEmployeeData() {
+        async function loadEmployeeData(filename) {
             try {
-                const response = await fetch('napa-2022.csv');
+                const response = await fetch(filename);
                 const csvText = await response.text();
                 employeeData = $.csv.toObjects(csvText);
                 return employeeData;
@@ -156,15 +156,13 @@
             const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
             timerDiv.text(formatTime(elapsedSeconds));
 
-            totalCost += costPerMinute / 60; // Update cost every second
+            totalCost += costPerMinute / 60;
             totalCostDiv.text(`$${totalCost.toFixed(2)}`);
             
-            // Projected costs
             $('#cost-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
             $('#cost-30min').text(`$${(costPerMinute * 30).toFixed(2)}`);
             $('#cost-60min').text(`$${(costPerMinute * 60).toFixed(2)}`);
             
-            // Potential savings
             $('#save-5min').text(`$${(costPerMinute * 5).toFixed(2)}`);
             $('#save-10min').text(`$${(costPerMinute * 10).toFixed(2)}`);
             $('#save-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
@@ -175,7 +173,7 @@
             attendees = selectedIndices.map(index => employeeData[parseInt(index)]);
             costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
             startTime = Date.now();
-            meetingInterval = setInterval(updateMeetingCost, 1000); // Update every second
+            meetingInterval = setInterval(updateMeetingCost, 1000);
         });
 
         $('#stop-meeting').click(() => {
@@ -190,7 +188,6 @@
             totalCostDiv.text('$0.00');
             timerDiv.text('00:00:00');
             employeeSelect.val(null).trigger('change');
-            // Reset projected costs and savings
             $('.projection span, .savings span').text('$0.00');
         });
 
@@ -199,8 +196,6 @@
             const baseUrl = window.location.href.split('?')[0];
             const queryParams = selectedIndices.map(index => `attendee=${index}`).join('&');
             const shareableLink = `${baseUrl}?${queryParams}`;
-            
-            // Display the link in the input field
             $('#shareable-link').val(shareableLink);
         }
 
@@ -210,32 +205,23 @@
             employeeSelect.val(selectedIndices).trigger('change');
         }
 
-        // When attendees are added or removed, update the shareable link
         employeeSelect.on('change', generateShareableLink);
         
-        // Initialize ClipboardJS
         new ClipboardJS('#copy-button');
         
-        loadEmployeeData().then(employeeData => {
-            if (employeeData.length === 0) {
-                console.error('No employee data loaded from CSV.');
-                return;
-            }
+        dataSourceSelect.on('change', async () => {
+            employeeSelect.empty();
+            const selectedDataSource = dataSourceSelect.val();
+            await loadEmployeeData(selectedDataSource);
+            
             employeeData.forEach((employee, index) => {
                 const option = new Option(employee['Employee Name'], index);
                 employeeSelect.append(option);
             });
-            employeeSelect.select2({
-                placeholder: 'Select attendees',
-                allowClear: true
-            });
-            
-            // Preselect attendees from the URL after loading employee data
-            preselectAttendeesFromURL();
-            
-        }).catch(error => {
-            console.error('Error in loading employee data:', error);
+            $('#reset-calculator').trigger('click');
         });
+        
+        dataSourceSelect.trigger('change');
 
         totalCostDiv.text('$0.00');
         timerDiv.text('00:00:00');
