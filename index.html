@@ -238,6 +238,9 @@ async function initializePage() {
     
     const selectedDataSource = dataSourceSelect.val();
     await loadEmployeeData(selectedDataSource);
+
+    // Clear existing options before appending new ones
+    employeeSelect.empty(); 
     
     employeeData.forEach((employee, index) => {
         const option = new Option(employee['Employee Name'], index);
