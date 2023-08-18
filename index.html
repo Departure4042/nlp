@@ -210,16 +210,24 @@
         new ClipboardJS('#copy-button');
         
         dataSourceSelect.on('change', async () => {
-            employeeSelect.empty();
-            const selectedDataSource = dataSourceSelect.val();
-            await loadEmployeeData(selectedDataSource);
-            
-            employeeData.forEach((employee, index) => {
-                const option = new Option(employee['Employee Name'], index);
-                employeeSelect.append(option);
-            });
-            $('#reset-calculator').trigger('click');
-        });
+    employeeSelect.empty();
+    const selectedDataSource = dataSourceSelect.val();
+    await loadEmployeeData(selectedDataSource);
+    
+    employeeData.forEach((employee, index) => {
+        const option = new Option(employee['Employee Name'], index);
+        employeeSelect.append(option);
+    });
+    
+    // Initialize the Select2 box
+    employeeSelect.select2({
+        placeholder: 'Select attendees',
+        allowClear: true
+    });
+    
+    $('#reset-calculator').trigger('click');
+});
+
         
         dataSourceSelect.trigger('change');
 
