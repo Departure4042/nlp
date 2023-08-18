@@ -191,6 +191,24 @@
             $('#save-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
         }
 
+        function updateProjectedCostsAndSavings() {
+            // Calculate the cost per minute based on the current list of attendees
+            const selectedIndices = employeeSelect.val();
+            attendees = selectedIndices.map(index => employeeData[parseInt(index)]);
+            costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
+
+            // Update projected costs
+            $('#cost-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
+            $('#cost-30min').text(`$${(costPerMinute * 30).toFixed(2)}`);
+            $('#cost-60min').text(`$${(costPerMinute * 60).toFixed(2)}`);
+
+            // Update potential savings
+            $('#save-5min').text(`$${(costPerMinute * 5).toFixed(2)}`);
+            $('#save-10min').text(`$${(costPerMinute * 10).toFixed(2)}`);
+            $('#save-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
+        }
+
+
         $('#start-meeting').click(() => {
             const selectedIndices = employeeSelect.val();
             attendees = selectedIndices.map(index => employeeData[parseInt(index)]);
@@ -263,7 +281,12 @@ async function initializePage() {
     $('#reset-calculator').trigger('click');
 }
 
-employeeSelect.on('change', generateShareableLink);
+employeeSelect.on('change', () => {
+            generateShareableLink();
+            updateProjectedCostsAndSavings();
+        });
+
+
 dataSourceSelect.on('change', initializePage);
         
 $(document).ready(() => {
