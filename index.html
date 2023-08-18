@@ -1,322 +1,372 @@
-<!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Meeting Cost Calculator</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css"
+      rel="stylesheet"
+    />
 
     <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f4f4f4;
+        color: #333;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .container {
+        max-width: 800px;
+        width: 100%;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      h1,
+      h2,
+      h3 {
+        color: #0d3b66; /* Deep Blue */
+      }
+      .controls-section,
+      .cost-section,
+      .share-section {
+        background-color: #ffffff;
+        border: 1px solid #c5c5c5;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 10px 0;
+      }
+      select,
+      button {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0;
+        font-size: 16px;
+      }
+      button {
+        background-color: #d7263d; /* Corporate Red */
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #b21f35; /* Darker Red for Hover Effect */
+      }
+      #total-cost,
+      #timer {
+        font-size: 24px;
+        font-weight: bold;
+        color: #0d3b66; /* Deep Blue */
+      }
+      #share-link {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      #copy-button {
+        align-self: flex-end;
+      }
+      .attendee {
+        border: 1px solid #ddd;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        background-color: #f0f8ff; /* Light Blue Background for Attendees */
+      }
+      @media (max-width: 600px) {
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f4;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+          margin: 10px;
         }
-        .container {
-            max-width: 800px;
-            width: 100%;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        h1, h2, h3 {
-            color: #0D3B66; /* Deep Blue */
-        }
-        .controls-section, .cost-section, .share-section {
-            background-color: #ffffff;
-            border: 1px solid #C5C5C5;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 10px 0;
-        }
-        select, button {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            font-size: 16px;
-        }
+        select,
         button {
-            background-color: #D7263D; /* Corporate Red */
-            color: white;
-            border: none;
-            cursor: pointer;
+          font-size: 18px;
         }
-        button:hover {
-            background-color: #B21F35; /* Darker Red for Hover Effect */
-        }
-        #total-cost, #timer {
-            font-size: 24px;
-            font-weight: bold;
-            color: #0D3B66; /* Deep Blue */
-        }
-        #share-link {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        #copy-button {
-            align-self: flex-end;
-        }
-        .attendee {
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            background-color: #F0F8FF; /* Light Blue Background for Attendees */
-        }
-        @media (max-width: 600px) {
-            body {
-                margin: 10px;
-            }
-            select, button {
-                font-size: 18px;
-            }
-        }
+      }
     </style>
-    
-
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>Meeting Cost Calculator</h1>
+      <h1>Meeting Cost Calculator</h1>
 
-        <div class="controls-section">
-            <label for="data-source-select">Select Data Source:</label>
-            <select id="data-source-select">
-                <option value="napa-2022.csv">City of Napa 2022</option>
-                <option value="napa-county-2022.csv">Napa County 2022</option>
-                <option value="napa-county-office-of-education-2021.csv">Napa County Office of Edu 2021</option>
-                <option value="napa-valley-unified-2021.csv">Napa Unified School Dist 2021</option>
-            </select>
+      <div class="controls-section">
+        <label for="data-source-select">Select Data Source:</label>
+        <select id="data-source-select">
+          <option value="napa-2022.csv">City of Napa 2022</option>
+          <option value="napa-county-2022.csv">Napa County 2022</option>
+          <option value="napa-county-office-of-education-2021.csv">
+            Napa County Office of Edu 2021
+          </option>
+          <option value="napa-valley-unified-2021.csv">
+            Napa Unified School Dist 2021
+          </option>
+        </select>
 
-            <label for="employee-select">Select Meeting Attendees:</label>
-            <select id="employee-select" multiple="multiple"></select>
+        <label for="employee-select">Select Meeting Attendees:</label>
+        <select id="employee-select" multiple="multiple"></select>
 
-            <button id="start-meeting">Start Meeting</button>
-            <button id="stop-meeting">Stop Meeting</button>
-            <button id="reset-calculator">Reset Calculator</button>
+        <button id="start-meeting">Start Meeting</button>
+        <button id="stop-meeting">Stop Meeting</button>
+        <button id="reset-calculator">Reset Calculator</button>
+      </div>
+
+      <div class="cost-section">
+        <h2>Total cost of this meeting:</h2>
+        <div id="total-cost">$0.00</div>
+
+        <h2>Elapsed Time:</h2>
+        <div id="timer">00:00:00</div>
+
+        <h3>Projected Costs:</h3>
+        <div class="projection">
+          Cost if 15 minutes: <span id="cost-15min">$0.00</span>
+        </div>
+        <div class="projection">
+          Cost if 30 minutes: <span id="cost-30min">$0.00</span>
+        </div>
+        <div class="projection">
+          Cost if 60 minutes: <span id="cost-60min">$0.00</span>
         </div>
 
-        <div class="cost-section">
-            <h2>Total cost of this meeting:</h2>
-            <div id="total-cost">$0.00</div>
-            
-            <h2>Elapsed Time:</h2>
-            <div id="timer">00:00:00</div>
-            
-            <h3>Projected Costs:</h3>
-            <div class="projection">Cost if 15 minutes: <span id="cost-15min">$0.00</span></div>
-            <div class="projection">Cost if 30 minutes: <span id="cost-30min">$0.00</span></div>
-            <div class="projection">Cost if 60 minutes: <span id="cost-60min">$0.00</span></div>
-            
-            <h3>Potential Savings:</h3>
-            <div class="savings">If ended 5 minutes early: <span id="save-5min">$0.00</span></div>
-            <div class="savings">If ended 10 minutes early: <span id="save-10min">$0.00</span></div>
-            <div class="savings">If ended 15 minutes early: <span id="save-15min">$0.00</span></div>
+        <h3>Potential Savings:</h3>
+        <div class="savings">
+          If ended 5 minutes early: <span id="save-5min">$0.00</span>
         </div>
-        
-        <div class="share-section" id="share-link">
-            <span>Share Link: </span>
-            <input type="text" id="shareable-link" readonly />
-            <button id="copy-button" data-clipboard-target="#shareable-link">Copy Link</button>
+        <div class="savings">
+          If ended 10 minutes early: <span id="save-10min">$0.00</span>
         </div>
-        
-        <div class="controls-section" id="attendee-details">
-            <h3>Attendee Details</h3>
+        <div class="savings">
+          If ended 15 minutes early: <span id="save-15min">$0.00</span>
         </div>
+      </div>
 
-        <h2>Data Source:</h2>
-        <p>
-            Employee salary data sourced from 
-            <a href="https://transparentcalifornia.com/" target="_blank" rel="noopener noreferrer">
-                Transparent California
-            </a>.
-        </p>
+      <div class="share-section" id="share-link">
+        <span>Share Link: </span>
+        <input type="text" id="shareable-link" readonly />
+        <button id="copy-button" data-clipboard-target="#shareable-link">
+          Copy Link
+        </button>
+      </div>
+
+      <div class="controls-section" id="attendee-details">
+        <h3>Attendee Details</h3>
+      </div>
+
+      <h2>Data Source:</h2>
+      <p>
+        Employee salary data sourced from
+        <a
+          href="https://transparentcalifornia.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Transparent California </a
+        >.
+      </p>
     </div>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
-    
+
     <script>
-        const dataSourceSelect = $('#data-source-select');
-        const employeeSelect = $('#employee-select');
-        const totalCostDiv = $('#total-cost');
-        const timerDiv = $('#timer');
+      const dataSourceSelect = $("#data-source-select");
+      const employeeSelect = $("#employee-select");
+      const totalCostDiv = $("#total-cost");
+      const timerDiv = $("#timer");
 
-        let attendees = [];
-        let totalCost = 0;
-        let costPerMinute = 0;
-        let meetingInterval = null;
-        let employeeData = [];
-        let startTime = null;
+      let attendees = [];
+      let totalCost = 0;
+      let costPerMinute = 0;
+      let meetingInterval = null;
+      let employeeData = [];
+      let startTime = null;
 
-        async function loadEmployeeData(filename) {
-            try {
-                const response = await fetch(filename);
-                const csvText = await response.text();
-                employeeData = $.csv.toObjects(csvText);
-                return employeeData;
-            } catch (error) {
-                console.error('Error in fetching and parsing CSV data:', error);
-                return [];
-            }
+      async function loadEmployeeData(filename) {
+        try {
+          const response = await fetch(filename);
+          const csvText = await response.text();
+          employeeData = $.csv.toObjects(csvText);
+          return employeeData;
+        } catch (error) {
+          console.error("Error in fetching and parsing CSV data:", error);
+          return [];
+        }
+      }
+
+      function formatTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const sec = seconds % 60;
+        return `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+      }
+
+      function updateMeetingCost() {
+        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+        timerDiv.text(formatTime(elapsedSeconds));
+
+        totalCost += costPerMinute / 60;
+        totalCostDiv.text(`$${totalCost.toFixed(2)}`);
+
+        $("#cost-15min").text(`$${(costPerMinute * 15).toFixed(2)}`);
+        $("#cost-30min").text(`$${(costPerMinute * 30).toFixed(2)}`);
+        $("#cost-60min").text(`$${(costPerMinute * 60).toFixed(2)}`);
+
+        $("#save-5min").text(`$${(costPerMinute * 5).toFixed(2)}`);
+        $("#save-10min").text(`$${(costPerMinute * 10).toFixed(2)}`);
+        $("#save-15min").text(`$${(costPerMinute * 15).toFixed(2)}`);
+      }
+
+      function updateProjectedCostsAndSavings() {
+        // Calculate the cost per minute based on the current list of attendees
+        const selectedIndices = employeeSelect.val();
+        attendees = selectedIndices.map(
+          (index) => employeeData[parseInt(index)],
+        );
+        costPerMinute = attendees.reduce(
+          (sum, attendee) =>
+            sum + parseFloat(attendee["Base Pay"]) / (52 * 40 * 60),
+          0,
+        );
+
+        // Update projected costs
+        $("#cost-15min").text(`$${(costPerMinute * 15).toFixed(2)}`);
+        $("#cost-30min").text(`$${(costPerMinute * 30).toFixed(2)}`);
+        $("#cost-60min").text(`$${(costPerMinute * 60).toFixed(2)}`);
+
+        // Update potential savings
+        $("#save-5min").text(`$${(costPerMinute * 5).toFixed(2)}`);
+        $("#save-10min").text(`$${(costPerMinute * 10).toFixed(2)}`);
+        $("#save-15min").text(`$${(costPerMinute * 15).toFixed(2)}`);
+      }
+
+      $("#start-meeting").click(() => {
+        const selectedIndices = employeeSelect.val();
+        attendees = selectedIndices.map(
+          (index) => employeeData[parseInt(index)],
+        );
+        costPerMinute = attendees.reduce(
+          (sum, attendee) =>
+            sum + parseFloat(attendee["Base Pay"]) / (52 * 40 * 60),
+          0,
+        );
+        startTime = Date.now();
+        meetingInterval = setInterval(updateMeetingCost, 1000);
+
+        const attendeeDetailsSection = $("#attendee-details");
+        attendeeDetailsSection.empty();
+        attendeeDetailsSection.append("<h3>Attendee Details</h3>");
+
+        attendees.forEach((attendee) => {
+          const attendeeDetail = $('<div class="attendee"></div>');
+          attendeeDetail.append(`<p>Name: ${attendee["Employee Name"]}</p>`);
+          attendeeDetail.append(`<p>Job Title: ${attendee["Job Title"]}</p>`);
+          attendeeDetail.append(
+            `<p>Base Pay: $${parseFloat(attendee["Base Pay"]).toFixed(2)}</p>`,
+          );
+          attendeeDetail.append(
+            `<p>Total Pay & Benefits: $${parseFloat(
+              attendee["Total Pay & Benefits"],
+            ).toFixed(2)}</p>`,
+          );
+          attendeeDetailsSection.append(attendeeDetail);
+        });
+      });
+
+      $("#stop-meeting, #reset-calculator").click(() => {
+        clearInterval(meetingInterval);
+        const attendeeDetailsSection = $("#attendee-details");
+        attendeeDetailsSection.empty();
+        attendeeDetailsSection.append("<h3>Attendee Details</h3>");
+      });
+
+      function getParamsFromURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const attendeeIndices = urlParams
+          .getAll("attendee")
+          .map((index) => parseInt(index, 10));
+        const dataSource = urlParams.get("data-source");
+        return { attendeeIndices, dataSource };
+      }
+
+      function generateShareableLink() {
+        const selectedIndices = employeeSelect.val();
+        const selectedDataSource = dataSourceSelect.val();
+        const baseUrl = window.location.href.split("?")[0];
+        const attendeeParams = selectedIndices
+          .map((index) => `attendee=${index}`)
+          .join("&");
+        const shareableLink = `${baseUrl}?data-source=${selectedDataSource}&${attendeeParams}`;
+        $("#shareable-link").val(shareableLink);
+      }
+      async function initializePage() {
+        const { attendeeIndices, dataSource } = getParamsFromURL();
+
+        if (dataSource) {
+          dataSourceSelect.val(dataSource);
         }
 
-        function formatTime(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            const sec = seconds % 60;
-            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-        }
+        const selectedDataSource = dataSourceSelect.val();
+        await loadEmployeeData(selectedDataSource);
 
-        function updateMeetingCost() {
-            const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-            timerDiv.text(formatTime(elapsedSeconds));
+        // Clear existing options before appending new ones
+        employeeSelect.empty();
 
-            totalCost += costPerMinute / 60;
-            totalCostDiv.text(`$${totalCost.toFixed(2)}`);
-            
-            $('#cost-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
-            $('#cost-30min').text(`$${(costPerMinute * 30).toFixed(2)}`);
-            $('#cost-60min').text(`$${(costPerMinute * 60).toFixed(2)}`);
-            
-            $('#save-5min').text(`$${(costPerMinute * 5).toFixed(2)}`);
-            $('#save-10min').text(`$${(costPerMinute * 10).toFixed(2)}`);
-            $('#save-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
-        }
-
-        function updateProjectedCostsAndSavings() {
-            // Calculate the cost per minute based on the current list of attendees
-            const selectedIndices = employeeSelect.val();
-            attendees = selectedIndices.map(index => employeeData[parseInt(index)]);
-            costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
-
-            // Update projected costs
-            $('#cost-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
-            $('#cost-30min').text(`$${(costPerMinute * 30).toFixed(2)}`);
-            $('#cost-60min').text(`$${(costPerMinute * 60).toFixed(2)}`);
-
-            // Update potential savings
-            $('#save-5min').text(`$${(costPerMinute * 5).toFixed(2)}`);
-            $('#save-10min').text(`$${(costPerMinute * 10).toFixed(2)}`);
-            $('#save-15min').text(`$${(costPerMinute * 15).toFixed(2)}`);
-        }
-
-
-        $('#start-meeting').click(() => {
-            const selectedIndices = employeeSelect.val();
-            attendees = selectedIndices.map(index => employeeData[parseInt(index)]);
-            costPerMinute = attendees.reduce((sum, attendee) => sum + parseFloat(attendee['Base Pay']) / (52 * 40 * 60), 0);
-            startTime = Date.now();
-            meetingInterval = setInterval(updateMeetingCost, 1000);
-
-            const attendeeDetailsSection = $('#attendee-details');
-            attendeeDetailsSection.empty();
-            attendeeDetailsSection.append('<h3>Attendee Details</h3>');
-            
-            attendees.forEach(attendee => {
-                const attendeeDetail = $('<div class="attendee"></div>');
-                attendeeDetail.append(`<p>Name: ${attendee['Employee Name']}</p>`);
-                attendeeDetail.append(`<p>Job Title: ${attendee['Job Title']}</p>`);
-                attendeeDetail.append(`<p>Base Pay: $${parseFloat(attendee['Base Pay']).toFixed(2)}</p>`);
-                attendeeDetail.append(`<p>Total Pay & Benefits: $${parseFloat(attendee['Total Pay & Benefits']).toFixed(2)}</p>`);
-                attendeeDetailsSection.append(attendeeDetail);
-            });
+        employeeData.forEach((employee, index) => {
+          const option = new Option(employee["Employee Name"], index);
+          employeeSelect.append(option);
         });
 
-
-        $('#stop-meeting, #reset-calculator').click(() => {
-            clearInterval(meetingInterval);
-            const attendeeDetailsSection = $('#attendee-details');
-            attendeeDetailsSection.empty();
-            attendeeDetailsSection.append('<h3>Attendee Details</h3>');
+        employeeSelect.select2({
+          placeholder: "Select attendees",
+          allowClear: true,
         });
 
-        function getParamsFromURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const attendeeIndices = urlParams.getAll('attendee').map(index => parseInt(index, 10));
-    const dataSource = urlParams.get('data-source');
-    return { attendeeIndices, dataSource };
-}
+        employeeSelect.val(attendeeIndices).trigger("change");
 
-function generateShareableLink() {
-    const selectedIndices = employeeSelect.val();
-    const selectedDataSource = dataSourceSelect.val();
-    const baseUrl = window.location.href.split('?')[0];
-    const attendeeParams = selectedIndices.map(index => `attendee=${index}`).join('&');
-    const shareableLink = `${baseUrl}?data-source=${selectedDataSource}&${attendeeParams}`;
-    $('#shareable-link').val(shareableLink);
-}
-async function initializePage() {
-    const { attendeeIndices, dataSource } = getParamsFromURL();
-    
-    if (dataSource) {
-        dataSourceSelect.val(dataSource);
-    }
-    
-    const selectedDataSource = dataSourceSelect.val();
-    await loadEmployeeData(selectedDataSource);
+        $("#reset-calculator").trigger("click");
+      }
 
-    // Clear existing options before appending new ones
-    employeeSelect.empty(); 
-    
-    employeeData.forEach((employee, index) => {
-        const option = new Option(employee['Employee Name'], index);
-        employeeSelect.append(option);
-    });
-    
-    employeeSelect.select2({
-        placeholder: 'Select attendees',
-        allowClear: true
-    });
-    
-    employeeSelect.val(attendeeIndices).trigger('change');
-    
-    $('#reset-calculator').trigger('click');
-}
+      employeeSelect.on("change", () => {
+        generateShareableLink();
+        updateProjectedCostsAndSavings();
+      });
 
-employeeSelect.on('change', () => {
-            generateShareableLink();
-            updateProjectedCostsAndSavings();
+      dataSourceSelect.on("change", initializePage);
+
+      $(document).ready(() => {
+        dataSourceSelect.trigger("change");
+      });
+
+      new ClipboardJS("#copy-button");
+
+      dataSourceSelect.on("change", async () => {
+        employeeSelect.empty();
+        const selectedDataSource = dataSourceSelect.val();
+        await loadEmployeeData(selectedDataSource);
+
+        employeeData.forEach((employee, index) => {
+          const option = new Option(employee["Employee Name"], index);
+          employeeSelect.append(option);
         });
 
-
-dataSourceSelect.on('change', initializePage);
-        
-$(document).ready(() => {
-    dataSourceSelect.trigger('change');
-});
-
-        new ClipboardJS('#copy-button');
-        
-        dataSourceSelect.on('change', async () => {
-            employeeSelect.empty();
-            const selectedDataSource = dataSourceSelect.val();
-            await loadEmployeeData(selectedDataSource);
-            
-            employeeData.forEach((employee, index) => {
-                const option = new Option(employee['Employee Name'], index);
-                employeeSelect.append(option);
-            });
-            
-            employeeSelect.select2({
-                placeholder: 'Select attendees',
-                allowClear: true
-            });
-            
-            $('#reset-calculator').trigger('click');
+        employeeSelect.select2({
+          placeholder: "Select attendees",
+          allowClear: true,
         });
-        
-        dataSourceSelect.trigger('change');
 
-        totalCostDiv.text('$0.00');
-        timerDiv.text('00:00:00');
+        $("#reset-calculator").trigger("click");
+      });
+
+      dataSourceSelect.trigger("change");
+
+      totalCostDiv.text("$0.00");
+      timerDiv.text("00:00:00");
     </script>
-</body>
+  </body>
 </html>
