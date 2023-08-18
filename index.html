@@ -214,16 +214,53 @@
             attendeeDetailsSection.append('<h3>Attendee Details</h3>');
         });
 
-        function generateShareableLink() {
-            const selectedIndices = employeeSelect.val();
-            const baseUrl = window.location.href.split('?')[0];
-            const queryParams = selectedIndices.map(index => `attendee=${index}`).join('&');
-            const shareableLink = `${baseUrl}?${queryParams}`;
-            $('#shareable-link').val(shareableLink);
-        }
+        function getParamsFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const attendeeIndices = urlParams.getAll('attendee').map(index => parseInt(index, 10));
+    const dataSource = urlParams.get('data-source');
+    return { attendeeIndices, dataSource };
+}
 
-        employeeSelect.on('change', generateShareableLink);
+function generateShareableLink() {
+    const selectedIndices = employeeSelect.val();
+    const selectedDataSource = dataSourceSelect.val();
+    const baseUrl = window.location.href.split('?')[0];
+    const attendeeParams = selectedIndices.map(index => `attendee=${index}`).join('&');
+    const shareableLink = `${baseUrl}?data-source=${selectedDataSource}&${attendeeParams}`;
+    $('#shareable-link').val(shareableLink);
+}
+async function initializePage() {
+    const { attendeeIndices, dataSource } = getParamsFromURL();
+    
+    if (dataSource) {
+        dataSourceSelect.val(dataSource);
+    }
+    
+    const selectedDataSource = dataSourceSelect.val();
+    await loadEmployeeData(selectedDataSource);
+    
+    employeeData.forEach((employee, index) => {
+        const option = new Option(employee['Employee Name'], index);
+        employeeSelect.append(option);
+    });
+    
+    employeeSelect.select2({
+        placeholder: 'Select attendees',
+        allowClear: true
+    });
+    
+    employeeSelect.val(attendeeIndices).trigger('change');
+    
+    $('#reset-calculator').trigger('click');
+}
+
+employeeSelect.on('change', generateShareableLink);
+dataSourceSelect.on('change', initializePage);
         
+$(document).ready(() => {
+    dataSourceSelect.trigger('change');
+});
+
         new ClipboardJS('#copy-button');
         
         dataSourceSelect.on('change', async () => {
